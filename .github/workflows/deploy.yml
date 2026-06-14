@@ -53,16 +53,22 @@ jobs:
 
       - name: Deploy to staging K8s
         run: |
-          echo "Deploying to staging..."
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }}"
-          # kubectl set image deployment/genai-platform \
-          #   genai-platform=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }}
+          kubectl set image deployment/genai-platform \
+            genai-platform=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-${{ github.sha }} \
+            --namespace=${{ env.K8S_NAMESPACE }}
 
       - name: Smoke test
         run: |
-          echo "Running smoke tests on staging..."
-          sleep 10
-          # curl -f https://staging.example.com/health
+          for i in {1..12}; do
+            if curl -sf https://staging.example.com/health; then
+              echo "Staging health check passed"
+              exit 0
+            fi
+            echo "Waiting... attempt $i"
+            sleep 5
+          done
+          echo "Staging health check failed"
+          exit 1
 
   deploy-production:
     name: Deploy to Production
@@ -91,26 +97,25 @@ jobs:
 
       - name: Deploy to production K8s
         run: |
-          echo "Deploying to production (blue/green)..."
-          # kubectl set image deployment/genai-platform-blue \
-          #   genai-platform=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          kubectl set image deployment/genai-platform-blue \
+            genai-platform=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --namespace=${{ env.K8S_NAMESPACE }}
 
       - name: Post-deploy health check
         run: |
-          echo "Verifying production health..."
           for i in {1..12}; do
-            # if curl -sf https://example.com/health; then
-            #   echo "Health check passed"
-            #   exit 0
-            # fi
+            if curl -sf https://example.com/health; then
+              echo "Production health check passed"
+              exit 0
+            fi
             echo "Waiting... attempt $i"
             sleep 5
           done
-          echo "Health check failed"
+          echo "Production health check failed"
           exit 1
 
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "Rolling back production deployment..."
-          # kubectl rollout undo deployment/genai-platform
+          kubectl rollout undo deployment/genai-platform \
+            --namespace=${{ env.K8S_NAMESPACE }}

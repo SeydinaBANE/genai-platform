@@ -17,7 +17,6 @@ dependencies = [
     "redis>=5.2.0",
     "qdrant-client>=1.13.0",
     "litellm>=1.60.0",
-    "llama-index>=0.12.0",
     "guardrails-ai>=0.6.0",
     "python-multipart>=0.0.18",
 ]
@@ -63,7 +62,7 @@ select = [
     "RUF",            # ruff-specific
     "ASYNC",          # async best practices
 ]
-ignore = ["E501"]
+ignore = ["E501", "B008"]
 
 [tool.ruff.format]
 quote-style = "double"
