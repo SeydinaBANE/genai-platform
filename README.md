@@ -34,6 +34,10 @@
 
 **GenAI Platform** est une plateforme de production pour applications LLM, construite sur **FastAPI**. Elle intègre un pipeline RAG complet (découpage sémantique, BM25, reranking), un gateway LLM avec circuit breaker et fallback multi-modèle, des garde-fous entrée/sortie (injection, toxicité, PII), du caching sémantique, du rate limiting, et de l'observabilité complète (Langfuse, Prometheus, MLflow).
 
+### Topics
+
+`genai`, `llm`, `rag`, `fastapi`, `mlops`, `guardrails`, `semantic-cache`, `circuit-breaker`, `langfuse`, `prometheus`, `qdrant`, `redis`, `postgresql`, `mlflow`, `docker`, `kubernetes`, `github-actions`, `production-ready`
+
 ### Architecture (12 couches)
 
 | Couche | Technologie | Rôle |
@@ -50,8 +54,6 @@
 | 10 — Tests | pytest, mypy, ruff | Fiabilité du code |
 | 11 — Prompt Registry | Gestion centralisée | Versioning des prompts |
 | 12 — Load & Chaos | Tests de charge | Résilience |
-
-**Topics** : `genai`, `llm`, `rag`, `fastapi`, `mlops`, `guardrails`, `semantic-cache`, `circuit-breaker`, `langfuse`, `prometheus`, `qdrant`, `redis`, `postgresql`, `mlflow`, `docker`, `kubernetes`, `github-actions`, `production-ready`
 
 ## Fonctionnalités
 
