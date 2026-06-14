@@ -51,26 +51,7 @@
 | 11 — Prompt Registry | Gestion centralisée | Versioning des prompts |
 | 12 — Load & Chaos | Tests de charge | Résilience |
 
-## Topics
-
-- `genai`
-- `llm`
-- `rag`
-- `fastapi`
-- `mlops`
-- `guardrails`
-- `semantic-cache`
-- `circuit-breaker`
-- `langfuse`
-- `prometheus`
-- `qdrant`
-- `redis`
-- `postgresql`
-- `mlflow`
-- `docker`
-- `kubernetes`
-- `github-actions`
-- `production-ready`
+**Topics** : `genai`, `llm`, `rag`, `fastapi`, `mlops`, `guardrails`, `semantic-cache`, `circuit-breaker`, `langfuse`, `prometheus`, `qdrant`, `redis`, `postgresql`, `mlflow`, `docker`, `kubernetes`, `github-actions`, `production-ready`
 
 ## Fonctionnalités
 
