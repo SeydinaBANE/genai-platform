@@ -1,0 +1,106 @@
+version: "3.9"
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.13.0
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+      - qdrant_snapshots:/qdrant/snapshots
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: genai
+      POSTGRES_PASSWORD: genai_dev_only  # pragma: allowlist secret
+      POSTGRES_DB: genai_platform
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U genai -d genai_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.20.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    environment:
+      MLFLOW_TRACKING_URI: postgresql://genai:genai_dev_only@postgres:5432/genai_platform  # pragma: allowlist secret
+      MLFLOW_ARTIFACT_ROOT: /mlflow/artifacts
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://genai:genai_dev_only@postgres:5432/genai_platform  # pragma: allowlist secret
+      --default-artifact-root /mlflow/artifacts
+      --artifacts-destination /mlflow/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  langfuse:
+    image: ghcr.io/langfuse/langfuse:3.50.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - langfuse_data:/data
+    environment:
+      DATABASE_URL: postgresql://genai:genai_dev_only@postgres:5432/genai_platform  # pragma: allowlist secret
+      NEXTAUTH_SECRET: dev-secret-change-in-prod  # pragma: allowlist secret
+      NEXTAUTH_URL: http://localhost:3000
+      SALT: dev-salt-change-in-prod  # pragma: allowlist secret
+      LANGFUSE_ENABLE_EXPORT: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+  qdrant_snapshots:
+  redis_data:
+  postgres_data:
+  mlflow_data:
+  langfuse_data:

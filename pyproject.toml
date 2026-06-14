@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "genai-platform"
+version = "0.1.0"
+description = "Plateforme GenAI industrialisée — MLOps, RAG, agents, monitoring"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "httpx>=0.28.0",
+    "redis>=5.2.0",
+    "qdrant-client>=1.13.0",
+    "litellm>=1.60.0",
+    "llama-index>=0.12.0",
+    "guardrails-ai>=0.6.0",
+    "python-multipart>=0.0.18",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.9.0",
+    "mypy>=1.15.0",
+    "pre-commit>=4.1.0",
+]
+test = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.0",
+]
+eval = [
+    "ragas>=0.2.0",
+    "deepeval>=1.4.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["genai_platform*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # flake8
+    "I",              # isort
+    "N",              # pep8-naming
+    "UP",             # pyupgrade
+    "B",              # bugbear
+    "SIM",            # simplify
+    "ARG",            # unused arguments
+    "C4",             # comprehensions
+    "RUF",            # ruff-specific
+    "ASYNC",          # async best practices
+]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+ignore_missing_imports = true
+exclude = ["tests/"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]

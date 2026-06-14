@@ -1,0 +1,41 @@
+# Default owners
+* @ekkiden/genai-platform-team
+
+# Infrastructure layer
+/docs/couche-01-infra.md @ekkiden/platform-eng
+/docker-compose.yml @ekkiden/platform-eng
+Makefile @ekkiden/platform-eng
+
+# Data & vector store
+/docs/couche-02-data.md @ekkiden/data-eng
+
+# LLM Gateway
+/docs/couche-03-gateway.md @ekkiden/ml-eng
+
+# RAG pipeline
+/docs/couche-04-rag.md @ekkiden/ml-eng
+
+# Guardrails & security
+/docs/couche-05-guardrails.md @ekkiden/security
+/docs/couche-09-securite-rgpd.md @ekkiden/security
+
+# Monitoring & evaluation
+/docs/couche-06-monitoring.md @ekkiden/ml-eng
+/docs/couche-08-feedback-eval.md @ekkiden/ml-eng
+
+# CI/CD & deployment
+/docs/couche-07-industrialisation.md @ekkiden/platform-eng
+/.github/ @ekkiden/platform-eng
+
+# Tests
+/docs/couche-10-tests.md @ekkiden/qa
+/docs/couche-12-load-chaos.md @ekkiden/qa
+
+# Prompt registry
+/docs/couche-11-prompt-registry.md @ekkiden/ml-eng
+
+# ADR
+/docs/adr/ @ekkiden/tech-lead
+
+# General best practices
+/docs/senior-best-practices.md @ekkiden/tech-lead

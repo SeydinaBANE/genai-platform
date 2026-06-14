@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.whl
+*.egg
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+.docker/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+*.coverage
+coverage/
+
+# Secrets
+.env
+.env.*
+!env.example
+*.key
+*.pem
+*.crt
+secrets/
+
+# Mypy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Logs
+*.log
