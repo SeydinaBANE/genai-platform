@@ -1,7 +1,13 @@
 # ADR 001 — Choix du Vector Store
 
 ## Statut
-Accepté
+Accepté (le choix de Qdrant est toujours d'actualité)
+
+## Note de mise à jour
+La décision Qdrant elle-même reste valide et implémentée (`src/genai_platform/adapters/vector_store/qdrant_store.py`,
+adapter du port `VectorStorePort`). En revanche, la mention "bonne intégration avec LlamaIndex" dans les raisons
+ci-dessous ne s'est pas concrétisée : voir l'[ADR 003](003-choix-framework-rag.md), amendée, qui documente le choix
+d'un pipeline RAG maison plutôt que LlamaIndex. L'intégration Qdrant se fait via un adapter custom, pas via LlamaIndex.
 
 ## Contexte
 Nous avons besoin d'un vector store pour stocker et interroger les embeddings des documents dans le pipeline RAG.

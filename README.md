@@ -32,7 +32,7 @@
 
 ## À propos
 
-**GenAI Platform** est une plateforme de production pour applications LLM, construite sur **FastAPI**. Elle intègre un pipeline RAG complet (découpage sémantique, BM25, reranking), un gateway LLM avec circuit breaker et fallback multi-modèle, des garde-fous entrée/sortie (injection, toxicité, PII), du caching sémantique, du rate limiting, et de l'observabilité complète (Langfuse, Prometheus, MLflow).
+**GenAI Platform** est une plateforme de production pour applications LLM, construite sur **FastAPI** selon une architecture hexagonale (ports & adapters). Elle intègre un pipeline RAG complet (découpage sémantique, recherche vectorielle Qdrant, reranking), un gateway LLM avec circuit breaker et fallback multi-modèle, des garde-fous entrée/sortie (injection, toxicité, PII), du caching, du rate limiting, et de l'observabilité complète (Langfuse, Prometheus, MLflow).
 
 ### Topics
 
@@ -40,12 +40,14 @@
 
 ### Architecture (12 couches)
 
+Le code (`src/genai_platform/`) suit une architecture hexagonale (ports & adapters) : `domain/` (logique métier pure), `ports/` (interfaces), `adapters/` (implémentations concrètes, dont `adapters/http/` pour l'API FastAPI), `application/` (cas d'usage), avec `bootstrap.py` comme racine de composition.
+
 | Couche | Technologie | Rôle |
 |--------|-------------|------|
 | 01 — Infrastructure | Docker Compose, K8s | Orchestration conteneurs |
 | 02 — Données | Qdrant, Redis, PostgreSQL | Vector store, cache, métadonnées |
 | 03 — Gateway LLM | LiteLLM | Routage, fallback, circuit breaker |
-| 04 — RAG | Chunking, BM25, reranker | Recherche et génération augmentée |
+| 04 — RAG | Chunking, recherche vectorielle Qdrant, reranker | Recherche et génération augmentée |
 | 05 — Guardrails | Guardrails AI | Sécurité entrée/sortie |
 | 06 — Monitoring | Langfuse, Prometheus | Traces, métriques, alerting |
 | 07 — Industrialisation | CI/CD, Trivy, detect-secrets | Qualité et sécurité continue |
@@ -58,13 +60,13 @@
 ## Fonctionnalités
 
 - **API REST** — endpoints `/api/v1/query`, `/api/v1/models`, `/api/v1/documents`
-- **RAG pipeline** — chunking intelligent, BM25, reranking, embeddings OpenAI/ mock
+- **RAG pipeline** — chunking intelligent, recherche vectorielle Qdrant, reranking, embeddings OpenAI/ mock
 - **LLM Gateway** — circuit breaker, fallback automatique, support multi-modèle
 - **Guardrails** — détection d'injection, toxicité, PII (Presidio)
-- **Caching sémantique** — cache Redis avec similarité cosinus
+- **Caching** — cache Redis (clé = hash SHA-256 de la requête)
 - **Rate limiting** — RPM + TPM par client
 - **Multi-tenant** — isolation par en-tête `X-Tenant-Id`
-- **Authentification** — API key via en-tête `Authorization`
+- **Authentification** — API key via en-tête `X-API-Key`
 - **Observabilité** — Langfuse pour le tracing, Prometheus pour les métriques
 - **MLflow** — tracking des expériences et des modèles
 

@@ -188,7 +188,7 @@ load-test-report: ## Génère le rapport de test de charge
 | 1 provider LLM down | Fallback transparent | < 1s de latence supplémentaire |
 | Tous les providers down | 503 gracieux + message explicatif | < 5s de détection |
 | Redis down | Cache désactivé, requêtes pass-through | < 500ms d'impact |
-| Qdrant lent | Timeout + fallback BM25 | < 15s |
+| Qdrant lent | Timeout + réponse "aucun document trouvé" | < 15s |
 | Pod crash | Redémarrage K8s (< 30s) | < 2% d'erreurs |
 | Pic de trafic (10x) | Rate limiting, pas de crash | 0% d'erreurs 5xx |
 | Network partition | Isolation propre d'un service | Pas de corruption de données |
