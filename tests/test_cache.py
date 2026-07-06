@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from genai_platform.cache import SemanticCache
+from genai_platform.adapters.cache.redis_cache import SemanticCache
 
 
 @pytest.mark.asyncio

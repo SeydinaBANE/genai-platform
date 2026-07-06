@@ -3,15 +3,14 @@ from unittest.mock import AsyncMock
 import pytest
 
 from genai_platform.adapters.llm.mock_provider import MockLLMProvider
+from genai_platform.application.llm_gateway import AllModelsFailedError, LLMGateway
 from genai_platform.config import Settings
-from genai_platform.gateway import (
-    AllModelsFailedError,
+from genai_platform.domain.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerOpenError,
     CircuitBreakerState,
-    LLMGateway,
-    LLMResponse,
 )
+from genai_platform.domain.models import LLMResponse
 
 MOCK_RESPONSE = LLMResponse(
     content="mock response",

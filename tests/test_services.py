@@ -3,11 +3,13 @@ from unittest.mock import patch
 
 import pytest
 
-from genai_platform.cache import SemanticCache
+from genai_platform.adapters.cache.redis_cache import SemanticCache
+from genai_platform.adapters.metrics.prometheus_metrics import PrometheusMetrics
+from genai_platform.adapters.tracing.langfuse_tracing import MetricsCollector
+from genai_platform.application.llm_gateway import AllModelsFailedError
+from genai_platform.application.query_service import QueryService, QueryServiceResponse
 from genai_platform.config import Settings
-from genai_platform.gateway import AllModelsFailedError, LLMResponse
-from genai_platform.monitoring import MetricsCollector, PrometheusMetrics
-from genai_platform.services import QueryService, QueryServiceResponse
+from genai_platform.domain.models import LLMResponse
 
 
 def _build_service(settings: Settings, rag: "MockRAG", gateway: "MockGateway") -> QueryService:
@@ -157,7 +159,7 @@ class MockRAG:
             raise AllModelsFailedError("all models failed", [])
         _ = query
         _ = top_k
-        from genai_platform.rag import RAGResult
+        from genai_platform.domain.models import RAGResult
 
         return RAGResult(
             content="test response",

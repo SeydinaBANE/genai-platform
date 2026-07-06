@@ -1,7 +1,7 @@
 import pytest
 
+from genai_platform.application.guardrails import InputGuardrails, OutputGuardrails
 from genai_platform.config import Settings
-from genai_platform.guardrails import InputGuardrails, OutputGuardrails
 
 
 class TestInputGuardrails:

@@ -2,16 +2,12 @@ import pytest
 
 from genai_platform.adapters.llm.litellm_provider import LiteLLMProvider
 from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
+from genai_platform.application.llm_gateway import LLMGateway
+from genai_platform.application.rag_pipeline import RAGPipeline
 from genai_platform.config import Settings
-from genai_platform.gateway import LLMGateway
-from genai_platform.rag import (
-    Chunk,
-    ChunkingStrategy,
-    Document,
-    RAGPipeline,
-    Reranker,
-    ScoredChunk,
-)
+from genai_platform.domain.chunking import ChunkingStrategy
+from genai_platform.domain.models import Chunk, Document, ScoredChunk
+from genai_platform.domain.reranking import Reranker
 
 
 def _build_rag(settings: Settings, gateway: LLMGateway) -> RAGPipeline:

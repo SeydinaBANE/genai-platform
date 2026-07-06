@@ -1,6 +1,6 @@
 import time
 
-from genai_platform.rate_limiter import RateLimiter, TokenBucket
+from genai_platform.domain.rate_limiting import RateLimiter, TokenBucket
 
 
 class TestTokenBucket:
