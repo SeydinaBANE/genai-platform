@@ -1,25 +1,20 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from genai_platform.api import app
+from genai_platform.adapters.http.api import app
+from genai_platform.bootstrap import build_app_components
 from genai_platform.config import Settings
-from genai_platform.gateway import LLMGateway
-from genai_platform.rag import RAGPipeline
-from genai_platform.rate_limiter import RateLimiter
-from genai_platform.services import QueryService
 
 
 @pytest.fixture(autouse=True)
 async def setup_app_state():
-    settings = Settings()
-    app.state.settings = settings
-    gateway = LLMGateway(settings)
-    rag = RAGPipeline(settings, gateway)
-    await rag.initialize()
-    app.state.query_service = QueryService(settings, rag, gateway)
-    app.state.rate_limiter = RateLimiter(rpm=100000, tpm=10000000)
+    settings = Settings(rate_limit_rpm=100000, rate_limit_tpm=10000000)
+    components = await build_app_components(settings)
+    app.state.settings = components.settings
+    app.state.query_service = components.query_service
+    app.state.rate_limiter = components.rate_limiter
     yield
-    await rag.close()
+    await components.rag.close()
 
 
 @pytest.fixture

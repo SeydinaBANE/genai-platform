@@ -2,15 +2,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from genai_platform.adapters.llm.mock_provider import MockLLMProvider
+from genai_platform.application.llm_gateway import AllModelsFailedError, LLMGateway
 from genai_platform.config import Settings
-from genai_platform.gateway import (
-    AllModelsFailedError,
+from genai_platform.domain.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerOpenError,
     CircuitBreakerState,
-    LLMGateway,
-    LLMResponse,
 )
+from genai_platform.domain.models import LLMResponse
 
 MOCK_RESPONSE = LLMResponse(
     content="mock response",
@@ -88,14 +88,14 @@ class TestCircuitBreaker:
 class TestLLMGateway:
     def test_init_creates_circuit_breakers(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
+        gateway = LLMGateway(settings, llm_provider=MockLLMProvider())
         assert gateway.default_model == settings.llm_default_model
         assert len(gateway.circuit_breakers) == 1 + len(settings.llm_fallback_models)
 
     @pytest.mark.asyncio
     async def test_complete_returns_response(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
+        gateway = LLMGateway(settings, llm_provider=MockLLMProvider())
         gateway._do_llm_call = AsyncMock(return_value=MOCK_RESPONSE)  # type: ignore[method-assign]
         result = await gateway.complete(prompt="Hello")
         assert isinstance(result, LLMResponse)
@@ -105,7 +105,7 @@ class TestLLMGateway:
     @pytest.mark.asyncio
     async def test_complete_uses_custom_model(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
+        gateway = LLMGateway(settings, llm_provider=MockLLMProvider())
         gateway._do_llm_call = AsyncMock(return_value=MOCK_RESPONSE)  # type: ignore[method-assign]
         result = await gateway.complete(prompt="Hello", model="gpt-4o")
         assert result.model == "gpt-4o"
@@ -120,7 +120,7 @@ class TestLLMGateway:
             tokens_prompt=5,
             tokens_completion=10,
         )
-        gateway = LLMGateway(settings)
+        gateway = LLMGateway(settings, llm_provider=MockLLMProvider())
         gateway._do_llm_call = AsyncMock(return_value=custom)  # type: ignore[method-assign]
         result = await gateway.complete(prompt="Hello")
         assert result.content == "fallback ok"
@@ -128,7 +128,7 @@ class TestLLMGateway:
     @pytest.mark.asyncio
     async def test_complete_raises_all_models_failed(self) -> None:
         settings = Settings(llm_fallback_models=[])
-        gateway = LLMGateway(settings)
+        gateway = LLMGateway(settings, llm_provider=MockLLMProvider())
         gateway._do_llm_call = AsyncMock(side_effect=ValueError("API error"))  # type: ignore[method-assign]
         with pytest.raises(AllModelsFailedError):
             await gateway.complete(prompt="Hello")
@@ -136,7 +136,7 @@ class TestLLMGateway:
     @pytest.mark.asyncio
     async def test_complete_skips_open_circuit_breaker(self) -> None:
         settings = Settings(llm_fallback_models=["fallback-model"])
-        gateway = LLMGateway(settings)
+        gateway = LLMGateway(settings, llm_provider=MockLLMProvider())
         gateway._do_llm_call = AsyncMock(return_value=MOCK_RESPONSE)  # type: ignore[method-assign]
 
         cb = gateway.circuit_breakers[settings.llm_default_model]

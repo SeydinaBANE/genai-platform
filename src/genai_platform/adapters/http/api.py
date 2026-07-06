@@ -6,13 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from genai_platform import bootstrap
+from genai_platform.adapters.http.router import v1_router
 from genai_platform.config import Settings
-from genai_platform.gateway import LLMGateway
+from genai_platform.domain.rate_limiting import RateLimiter
 from genai_platform.logging import setup_logging
-from genai_platform.rag import RAGPipeline
-from genai_platform.rate_limiter import RateLimiter
-from genai_platform.router import v1_router
-from genai_platform.services import QueryService
 
 settings = Settings()
 
@@ -20,17 +18,12 @@ settings = Settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_logging(settings.log_level)
-    app.state.settings = settings
-    gateway = LLMGateway(settings)
-    rag = RAGPipeline(settings, gateway)
-    await rag.initialize()
-    app.state.query_service = QueryService(settings, rag, gateway)
-    app.state.rate_limiter = RateLimiter(
-        rpm=settings.rate_limit_rpm,
-        tpm=settings.rate_limit_tpm,
-    )
+    components = await bootstrap.build_app_components(settings)
+    app.state.settings = components.settings
+    app.state.query_service = components.query_service
+    app.state.rate_limiter = components.rate_limiter
     yield
-    await rag.close()
+    await components.rag.close()
 
 
 app = FastAPI(

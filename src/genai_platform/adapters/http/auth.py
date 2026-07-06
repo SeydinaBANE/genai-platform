@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
+from genai_platform.adapters.http.dependencies import get_settings
 from genai_platform.config import Settings
-from genai_platform.dependencies import get_settings
 
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 

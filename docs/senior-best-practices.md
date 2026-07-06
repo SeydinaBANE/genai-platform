@@ -27,7 +27,7 @@ COPY src/ src/
 USER nonroot
 HEALTHCHECK CMD ["python", "-c", "urllib.request.urlopen('http://localhost:8000/health')"]
 EXPOSE 8000
-ENTRYPOINT ["python", "-m", "uvicorn", "genai_platform.api:app", "--host", "0.0.0.0"]
+ENTRYPOINT ["python", "-m", "uvicorn", "genai_platform.adapters.http.api:app", "--host", "0.0.0.0"]
 ```
 
 ## Makefile

@@ -1,0 +1,9 @@
+from typing import Protocol
+
+
+class CachePort(Protocol):
+    async def get(self, query: str) -> str | None: ...
+
+    async def set(self, query: str, response: str) -> None: ...
+
+    async def close(self) -> None: ...

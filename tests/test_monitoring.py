@@ -3,8 +3,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from genai_platform.adapters.metrics.prometheus_metrics import PrometheusMetrics
+from genai_platform.adapters.tracing.langfuse_tracing import MetricsCollector
 from genai_platform.config import Settings
-from genai_platform.monitoring import MetricsCollector, PrometheusMetrics
 
 
 def _make_counter() -> MagicMock:

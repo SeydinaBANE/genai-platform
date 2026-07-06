@@ -1,7 +1,7 @@
 from fastapi import Request
 
+from genai_platform.application.query_service import QueryService
 from genai_platform.config import Settings
-from genai_platform.services import QueryService
 
 
 def get_settings(request: Request) -> Settings:

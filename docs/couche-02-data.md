@@ -15,7 +15,7 @@ Ingérer, transformer et stocker les données pour le pipeline RAG, avec gestion
 ```
 [Sources] → Airbyte → dbt → Qdrant + PostgreSQL
                                      ↓
-                            [Hybrid Search API]
+                            [Vector Search API]
                                      ↓
                               [RAG Pipeline]
 ```

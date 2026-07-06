@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, Header
 
-from genai_platform.auth import verify_api_key
-from genai_platform.dependencies import get_query_service
-from genai_platform.schemas import (
+from genai_platform.adapters.http.auth import verify_api_key
+from genai_platform.adapters.http.dependencies import get_query_service
+from genai_platform.adapters.http.schemas import (
     DocumentRequest,
     IngestResponse,
     QueryRequest,
     QueryResponse,
 )
-from genai_platform.services import QueryService
+from genai_platform.application.query_service import QueryService
 
 v1_router = APIRouter(dependencies=[Depends(verify_api_key)])
 
@@ -55,7 +55,7 @@ async def ingest_document(
     request: DocumentRequest,
     query_service: QueryService = Depends(get_query_service),
 ) -> IngestResponse:
-    from genai_platform.rag import Document
+    from genai_platform.domain.models import Document
 
     doc = Document(
         text=request.text,

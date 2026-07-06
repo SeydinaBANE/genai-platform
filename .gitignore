@@ -31,7 +31,7 @@ coverage/
 # Secrets
 .env
 .env.*
-!env.example
+!.env.example
 *.key
 *.pem
 *.crt

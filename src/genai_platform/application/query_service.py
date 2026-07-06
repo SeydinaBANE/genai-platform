@@ -1,11 +1,12 @@
 import json
 
-from genai_platform.cache import SemanticCache
+from genai_platform.application.guardrails import InputGuardrails, OutputGuardrails
+from genai_platform.application.llm_gateway import AllModelsFailedError, LLMGateway
+from genai_platform.application.rag_pipeline import RAGPipeline
 from genai_platform.config import Settings
-from genai_platform.gateway import AllModelsFailedError, LLMGateway
-from genai_platform.guardrails import InputGuardrails, OutputGuardrails
-from genai_platform.monitoring import MetricsCollector, PrometheusMetrics
-from genai_platform.rag import RAGPipeline
+from genai_platform.ports.cache import CachePort
+from genai_platform.ports.metrics import MetricsPort
+from genai_platform.ports.tracing import TracingPort
 
 
 class QueryService:
@@ -14,19 +15,18 @@ class QueryService:
         settings: Settings,
         rag: RAGPipeline,
         gateway: LLMGateway,
+        cache: CachePort,
+        tracing: TracingPort,
+        metrics: MetricsPort,
     ) -> None:
         self.settings = settings
         self.rag = rag
         self.gateway = gateway
         self.input_guardrails = InputGuardrails(settings)
         self.output_guardrails = OutputGuardrails(settings)
-        self.tracing = MetricsCollector(settings)
-        self.prometheus = PrometheusMetrics()
-        self.prometheus.init()
-        self.cache = SemanticCache(
-            redis_url=settings.redis_url,
-            ttl=settings.cache_ttl,
-        )
+        self.tracing = tracing
+        self.prometheus = metrics
+        self.cache = cache
 
     async def process_query(
         self,

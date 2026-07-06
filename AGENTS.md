@@ -15,10 +15,8 @@ make docker-up     # docker compose up -d (qdrant, redis, postgres, mlflow, lang
 
 - **Branch name**: `devlop` (not `develop`). CI triggers on `devlop` and `main`.
 - **No lockfile**: `pip` only. Builds are not deterministic.
-- **No README**: None exists. `.dockerignore` excludes `*.md` except `README.md` (which doesn't exist).
-- **LlamaIndex in deps but unused**: RAG pipeline (`rag.py`) uses custom chunking + BM25 + reranker. The dependency is reserved.
-- **HybridSearch is BM25-only**: No vector/embedding search yet. Qdrant client is in deps but unused.
-- **Mock LLM mode**: When `litellm` not installed, `LLMGateway` returns canned responses. App works without external LLM.
+- **RAG is Qdrant vector search, not BM25**: `application/rag_pipeline.py` embeds via `LLMProviderPort` and searches via `VectorStorePort` (Qdrant). LlamaIndex is still an unused reserved dependency.
+- **Mock LLM mode**: When `litellm` isn't importable, `bootstrap.py` picks `MockLLMProvider`, which returns canned responses. App works without external LLM.
 - **Optional services degrade silently**: Presidio, Prometheus, Langfuse each have `try/except ImportError` — app runs without them.
 - **Pre-commit mypy vs `make typecheck` mismatch**: Pre-commit runs `mypy --no-strict-optional`; `pyproject.toml` has `strict = true`. `pre-commit run` passes where `make typecheck` may fail.
 - **No DB migrations**: No Alembic or migration framework. App has no DB models.
@@ -26,17 +24,15 @@ make docker-up     # docker compose up -d (qdrant, redis, postgres, mlflow, lang
 
 ## Architecture (quick)
 
+Hexagonal (ports & adapters) — see `CLAUDE.md` for the full breakdown.
+
 ```
 genai_platform/
-  api.py        — FastAPI app creation (entrypoint: genai_platform.api:app)
-  config.py     — pydantic-settings, env prefix GENAI_
-  schemas.py    — QueryRequest / QueryResponse
-  router.py     — POST /api/v1/query, GET /api/v1/models
-  services.py   — QueryService: guardrails -> RAG -> guardrails -> tracing
-  gateway.py    — LLMGateway (LiteLLM, fallback chain, circuit breaker per model)
-  rag.py        — RAGPipeline (chunking, BM25, reranker, prompt)
-  guardrails.py — InputGuardrails / OutputGuardrails (prompt injection, toxicity, PII)
-  monitoring.py — MetricsCollector (Langfuse) + PrometheusMetrics
+  domain/       — pure logic: value objects, ChunkingStrategy, Reranker, CircuitBreaker, RateLimiter
+  ports/        — Protocol interfaces: LLMProviderPort, VectorStorePort, CachePort, TracingPort, MetricsPort
+  adapters/     — concrete implementations (llm/, vector_store/, cache/, tracing/, metrics/) + adapters/http/ (FastAPI)
+  application/  — use cases: LLMGateway, RAGPipeline, InputGuardrails/OutputGuardrails, QueryService
+  bootstrap.py  — composition root (entrypoint: genai_platform.adapters.http.api:app)
 ```
 
 ## Testing

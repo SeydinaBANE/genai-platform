@@ -4,11 +4,11 @@
 Indexer, récupérer et générer des réponses à partir de documents avec une architecture RAG industrialisée.
 
 ## Stack
-- **Framework** : LlamaIndex
+- **Framework** : pipeline maison (pas de LlamaIndex — `RAGPipeline` orchestre chunking, embedding, recherche et reranking derrière des ports)
 - **Chunking** : Sentence splitting + semantic chunking
-- **Embedding** : text-embedding-3-large (via Gateway)
-- **Vector Store** : Qdrant (couche 2)
-- **Hybrid Search** : dense (embedding) + sparse (BM25)
+- **Embedding** : text-embedding-3-large, via `LLMProviderPort` (couche 3)
+- **Vector Store** : Qdrant (couche 2), via `VectorStorePort`
+- **Recherche** : vectorielle dense uniquement (pas de sparse/BM25 aujourd'hui)
 - **Reranking** : Cohere rerank v3
 - **Evaluation** : RAGAS
 
@@ -17,7 +17,7 @@ Indexer, récupérer et générer des réponses à partir de documents avec une 
 ```
 [Document] → [Parser] → [Chunker] → [Embedding] → [Qdrant]
                                                      ↓
-[Query] → [Hybrid Search] → [Retrieval] → [Reranking] → [Context Builder]
+[Query] → [Embedding] → [Vector Search (Qdrant)] → [Reranking] → [Context Builder]
                                                               ↓
                                                       [LLM Generation]
                                                               ↓
@@ -57,33 +57,39 @@ Règles :
 - **Metadata** : source, page, section, date → pour le filtrage et les citations
 - **Document store** : garder les chunks originaux pour la récupération exacte
 
-## Hybrid Search
+## Recherche vectorielle
+
+Implémentation réelle : `src/genai_platform/adapters/vector_store/qdrant_store.py` (`QdrantVectorStore`,
+adapter concret du port `VectorStorePort` défini dans `ports/vector_store.py`), orchestré par
+`RAGPipeline` (`src/genai_platform/application/rag_pipeline.py`). Pas de recherche sparse/BM25 —
+uniquement une recherche vectorielle dense sur Qdrant.
 
 ```python
-class HybridSearch:
-    def __init__(self, vector_client, sparse_client=None):
-        self.vector_client = vector_client
-        self.sparse_client = sparse_client or BM25Okapi
+class QdrantVectorStore:
+    def __init__(self, url: str) -> None:
+        self._client = AsyncQdrantClient(url=url)
+        self._ready = False
 
-    async def search(self, query: str, top_k: int = 20) -> list[ScoredPoint]:
-        dense_results = await self._dense_search(query, top_k=top_k)
-        sparse_results = await self._sparse_search(query, top_k=top_k)
+    async def ensure_collection(self, collection: str, vector_size: int) -> None:
+        # crée la collection Qdrant si absente ; _ready=False si la connexion échoue
+        ...
 
-        # Reciprocal Rank Fusion
-        return self._rrf_fusion(dense_results, sparse_results, k=60)
-
-    async def _dense_search(self, query: str, top_k: int) -> list[ScoredPoint]:
-        embedding = await self.embedding_model.embed(query)
-        return self.vector_client.search(
-            collection_name="documents",
-            query_vector=embedding,
-            limit=top_k,
-            with_payload=True,
+    async def search(
+        self, collection: str, query_vector: list[float], limit: int
+    ) -> list[ScoredChunk]:
+        if not self._ready:
+            return []
+        results = await self._client.search(
+            collection_name=collection,
+            query_vector=query_vector,
+            limit=limit,
         )
-
-    async def _sparse_search(self, query: str, top_k: int) -> list[ScoredPoint]:
-        return self.sparse_client.search(query, top_k=top_k)
+        return [ScoredChunk(...) for r in results]
 ```
+
+`RAGPipeline.query` embed la requête via `LLMProviderPort.embed`, appelle `VectorStorePort.search`,
+et retourne une réponse statique « aucun document trouvé » si `vector_store.ready` est faux ou si
+la recherche ne renvoie aucun résultat — pas de fallback vers une recherche par mots-clés.
 
 ## Reranking
 
@@ -150,4 +156,4 @@ class RAGEvaluator:
 - ❌ Pas de reranking → le top-5 vectoriel n'est pas le top-5 sémantique
 - ❌ Ignorer le contexte → l'overlap entre chunks est critique
 - ❌ Pas d'évaluation → impossible de détecter la regression
-- ❌ BM25 sans tuning → résultats sparses médiocres
+- ❌ Pas de recherche sparse/mots-clés en complément du vectoriel → une requête avec des termes exacts (nom propre, référence, code produit) peut être mal servie si l'embedding ne capture pas bien ces tokens
