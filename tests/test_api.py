@@ -1,6 +1,8 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from genai_platform.adapters.llm.litellm_provider import LiteLLMProvider
+from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
 from genai_platform.api import app
 from genai_platform.config import Settings
 from genai_platform.gateway import LLMGateway
@@ -13,8 +15,9 @@ from genai_platform.services import QueryService
 async def setup_app_state():
     settings = Settings()
     app.state.settings = settings
-    gateway = LLMGateway(settings)
-    rag = RAGPipeline(settings, gateway)
+    llm_provider = LiteLLMProvider()
+    gateway = LLMGateway(settings, llm_provider)
+    rag = RAGPipeline(settings, gateway, llm_provider, QdrantVectorStore(url=settings.qdrant_url))
     await rag.initialize()
     app.state.query_service = QueryService(settings, rag, gateway)
     app.state.rate_limiter = RateLimiter(rpm=100000, tpm=10000000)

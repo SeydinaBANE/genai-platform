@@ -6,9 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
 from genai_platform.config import Settings
 from genai_platform.gateway import LLMGateway
 from genai_platform.logging import setup_logging
+from genai_platform.ports.llm_provider import LLMProviderPort
 from genai_platform.rag import RAGPipeline
 from genai_platform.rate_limiter import RateLimiter
 from genai_platform.router import v1_router
@@ -21,8 +23,21 @@ settings = Settings()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_logging(settings.log_level)
     app.state.settings = settings
-    gateway = LLMGateway(settings)
-    rag = RAGPipeline(settings, gateway)
+
+    try:
+        import litellm  # noqa: F401
+
+        from genai_platform.adapters.llm.litellm_provider import LiteLLMProvider
+
+        llm_provider: LLMProviderPort = LiteLLMProvider()
+    except ImportError:
+        from genai_platform.adapters.llm.mock_provider import MockLLMProvider
+
+        llm_provider = MockLLMProvider()
+
+    gateway = LLMGateway(settings, llm_provider)
+    vector_store = QdrantVectorStore(url=settings.qdrant_url)
+    rag = RAGPipeline(settings, gateway, llm_provider, vector_store)
     await rag.initialize()
     app.state.query_service = QueryService(settings, rag, gateway)
     app.state.rate_limiter = RateLimiter(

@@ -1,6 +1,3 @@
-import asyncio
-import time
-
 from genai_platform.config import Settings
 from genai_platform.domain.circuit_breaker import (
     CircuitBreaker,
@@ -8,6 +5,7 @@ from genai_platform.domain.circuit_breaker import (
     CircuitBreakerState,
 )
 from genai_platform.domain.models import LLMResponse
+from genai_platform.ports.llm_provider import LLMProviderPort
 
 __all__ = [
     "AllModelsFailedError",
@@ -16,13 +14,13 @@ __all__ = [
     "CircuitBreakerState",
     "LLMGateway",
     "LLMResponse",
-    "MockLLMResponse",
 ]
 
 
 class LLMGateway:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, llm_provider: LLMProviderPort) -> None:
         self.settings = settings
+        self.llm_provider = llm_provider
         self.default_model = settings.llm_default_model
         self.fallback_models = settings.llm_fallback_models
         self.circuit_breakers: dict[str, CircuitBreaker] = {}
@@ -88,36 +86,12 @@ class LLMGateway:
         temperature: float,
         max_tokens: int,
     ) -> LLMResponse:
-        start = time.time()
-
-        try:
-            from litellm import acompletion
-
-            response = await acompletion(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-                max_tokens=max_tokens,
-                timeout=self.settings.llm_request_timeout,
-            )
-        except ImportError:
-            response = await self._mock_llm_call(model, prompt)
-
-        latency_ms = int((time.time() - start) * 1000)
-
-        return LLMResponse(
-            content=response.choices[0].message.content,
+        return await self.llm_provider.complete(
             model=model,
-            latency_ms=latency_ms,
-            tokens_prompt=response.usage.prompt_tokens,
-            tokens_completion=response.usage.completion_tokens,
-        )
-
-    async def _mock_llm_call(self, model: str, prompt: str) -> "MockLLMResponse":
-        await asyncio.sleep(0.05)
-        return MockLLMResponse(
-            content=f"[{model}] Réponse simulée pour : {prompt[:50]}...",
-            model=model,
+            prompt=prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            request_timeout=self.settings.llm_request_timeout,
         )
 
 
@@ -125,23 +99,3 @@ class AllModelsFailedError(Exception):
     def __init__(self, message: str, errors: list[tuple[str, str]]) -> None:
         super().__init__(message)
         self.errors = errors
-
-
-class MockLLMResponse:
-    class Choice:
-        class Message:
-            def __init__(self, content: str) -> None:
-                self.content = content
-
-        def __init__(self, content: str) -> None:
-            self.message = self.Message(content)
-
-    class Usage:
-        def __init__(self) -> None:
-            self.prompt_tokens = 10
-            self.completion_tokens = 20
-
-    def __init__(self, content: str, model: str) -> None:
-        self.choices = [self.Choice(content)]
-        self.usage = self.Usage()
-        self.model = model

@@ -1,5 +1,7 @@
 import pytest
 
+from genai_platform.adapters.llm.litellm_provider import LiteLLMProvider
+from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
 from genai_platform.config import Settings
 from genai_platform.gateway import LLMGateway
 from genai_platform.rag import (
@@ -10,6 +12,15 @@ from genai_platform.rag import (
     Reranker,
     ScoredChunk,
 )
+
+
+def _build_rag(settings: Settings, gateway: LLMGateway) -> RAGPipeline:
+    return RAGPipeline(
+        settings,
+        gateway,
+        llm_provider=LiteLLMProvider(),
+        vector_store=QdrantVectorStore(url=settings.qdrant_url),
+    )
 
 
 class TestChunkingStrategy:
@@ -105,43 +116,42 @@ class TestReranker:
 class TestRAGPipeline:
     def test_init_sets_up_components(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         assert rag.chunker is not None
         assert rag.reranker is not None
-        assert rag._qdrant_client is None
-        assert rag._collection_ready is False
+        assert rag.vector_store.ready is False
 
     @pytest.mark.asyncio
     async def test_initialize_handles_qdrant_unavailable(self) -> None:
         settings = Settings(qdrant_url="http://nonexistent:6333")
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         await rag.initialize()
-        assert rag._collection_ready is False
+        assert rag.vector_store.ready is False
 
     @pytest.mark.asyncio
     async def test_close_safe_when_not_initialized(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         await rag.close()
 
     @pytest.mark.asyncio
     async def test_query_returns_no_documents_response_when_no_collection(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         await rag.initialize()
-        assert rag._collection_ready is False
+        assert rag.vector_store.ready is False
         result = await rag.query("test query")
         assert "Aucun document" in result.content
 
     @pytest.mark.asyncio
     async def test_index_document_returns_doc_id(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         doc = Document(text="Test content for indexing.", metadata={"source": "test"})
         doc_id = await rag.index_document(doc)
         assert doc_id is not None
@@ -150,8 +160,8 @@ class TestRAGPipeline:
     @pytest.mark.asyncio
     async def test_index_documents_returns_multiple_ids(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         docs = [
             Document(text="Doc one.", metadata={"source": "test"}),
             Document(text="Doc two.", metadata={"source": "test"}),
@@ -161,8 +171,8 @@ class TestRAGPipeline:
 
     def test_mock_embedding_returns_consistent_vector(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         v1 = rag._mock_embedding("hello")
         v2 = rag._mock_embedding("hello")
         assert v1 == v2
@@ -170,8 +180,8 @@ class TestRAGPipeline:
 
     def test_mock_embedding_different_inputs_different_vectors(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         v1 = rag._mock_embedding("hello")
         v2 = rag._mock_embedding("world")
         assert v1 != v2
@@ -179,8 +189,8 @@ class TestRAGPipeline:
     @pytest.mark.asyncio
     async def test_generate_embedding_falls_back_to_mock(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         embedding = await rag._generate_embedding("test")
         assert len(embedding) == 1536
         assert all(isinstance(v, float) for v in embedding)
@@ -188,7 +198,7 @@ class TestRAGPipeline:
     @pytest.mark.asyncio
     async def test_get_vector_size_returns_1536_on_failure(self) -> None:
         settings = Settings()
-        gateway = LLMGateway(settings)
-        rag = RAGPipeline(settings, gateway)
+        gateway = LLMGateway(settings, llm_provider=LiteLLMProvider())
+        rag = _build_rag(settings, gateway)
         size = await rag._get_vector_size()
         assert size == 1536
