@@ -6,6 +6,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from genai_platform.adapters.cache.redis_cache import SemanticCache
+from genai_platform.adapters.metrics.prometheus_metrics import PrometheusMetrics
+from genai_platform.adapters.tracing.langfuse_tracing import MetricsCollector
 from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
 from genai_platform.config import Settings
 from genai_platform.gateway import LLMGateway
@@ -39,7 +42,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     vector_store = QdrantVectorStore(url=settings.qdrant_url)
     rag = RAGPipeline(settings, gateway, llm_provider, vector_store)
     await rag.initialize()
-    app.state.query_service = QueryService(settings, rag, gateway)
+    cache = SemanticCache(redis_url=settings.redis_url, ttl=settings.cache_ttl)
+    tracing = MetricsCollector(settings)
+    metrics_collector = PrometheusMetrics()
+    metrics_collector.init()
+    app.state.query_service = QueryService(
+        settings, rag, gateway, cache=cache, tracing=tracing, metrics=metrics_collector
+    )
     app.state.rate_limiter = RateLimiter(
         rpm=settings.rate_limit_rpm,
         tpm=settings.rate_limit_tpm,

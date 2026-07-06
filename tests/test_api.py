@@ -1,7 +1,10 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from genai_platform.adapters.cache.redis_cache import SemanticCache
 from genai_platform.adapters.llm.litellm_provider import LiteLLMProvider
+from genai_platform.adapters.metrics.prometheus_metrics import PrometheusMetrics
+from genai_platform.adapters.tracing.langfuse_tracing import MetricsCollector
 from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
 from genai_platform.api import app
 from genai_platform.config import Settings
@@ -19,7 +22,16 @@ async def setup_app_state():
     gateway = LLMGateway(settings, llm_provider)
     rag = RAGPipeline(settings, gateway, llm_provider, QdrantVectorStore(url=settings.qdrant_url))
     await rag.initialize()
-    app.state.query_service = QueryService(settings, rag, gateway)
+    metrics = PrometheusMetrics()
+    metrics.init()
+    app.state.query_service = QueryService(
+        settings,
+        rag,
+        gateway,
+        cache=SemanticCache(redis_url=settings.redis_url, ttl=settings.cache_ttl),
+        tracing=MetricsCollector(settings),
+        metrics=metrics,
+    )
     app.state.rate_limiter = RateLimiter(rpm=100000, tpm=10000000)
     yield
     await rag.close()
