@@ -85,7 +85,7 @@ make init               # .venv + dépendances + pre-commit hooks
 cp .env.example .env
 
 # 5. Lancer l'API
-uvicorn genai_platform.api:app --reload
+uvicorn genai_platform.adapters.http.api:app --reload
 ```
 
 L'API est disponible sur `http://localhost:8000`. Documentation interactive sur `/docs`.

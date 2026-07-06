@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from genai_platform.auth import verify_api_key
+from genai_platform.adapters.http.auth import verify_api_key
 from genai_platform.config import Settings
 
 

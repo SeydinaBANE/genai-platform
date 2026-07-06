@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from genai_platform.schemas import QueryRequest, QueryResponse
+from genai_platform.adapters.http.schemas import QueryRequest, QueryResponse
 
 
 class TestQueryRequest:

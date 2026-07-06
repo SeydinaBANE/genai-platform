@@ -6,18 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from genai_platform.adapters.cache.redis_cache import SemanticCache
-from genai_platform.adapters.metrics.prometheus_metrics import PrometheusMetrics
-from genai_platform.adapters.tracing.langfuse_tracing import MetricsCollector
-from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
+from genai_platform import bootstrap
+from genai_platform.adapters.http.router import v1_router
 from genai_platform.config import Settings
-from genai_platform.gateway import LLMGateway
+from genai_platform.domain.rate_limiting import RateLimiter
 from genai_platform.logging import setup_logging
-from genai_platform.ports.llm_provider import LLMProviderPort
-from genai_platform.rag import RAGPipeline
-from genai_platform.rate_limiter import RateLimiter
-from genai_platform.router import v1_router
-from genai_platform.services import QueryService
 
 settings = Settings()
 
@@ -25,36 +18,12 @@ settings = Settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_logging(settings.log_level)
-    app.state.settings = settings
-
-    try:
-        import litellm  # noqa: F401
-
-        from genai_platform.adapters.llm.litellm_provider import LiteLLMProvider
-
-        llm_provider: LLMProviderPort = LiteLLMProvider()
-    except ImportError:
-        from genai_platform.adapters.llm.mock_provider import MockLLMProvider
-
-        llm_provider = MockLLMProvider()
-
-    gateway = LLMGateway(settings, llm_provider)
-    vector_store = QdrantVectorStore(url=settings.qdrant_url)
-    rag = RAGPipeline(settings, gateway, llm_provider, vector_store)
-    await rag.initialize()
-    cache = SemanticCache(redis_url=settings.redis_url, ttl=settings.cache_ttl)
-    tracing = MetricsCollector(settings)
-    metrics_collector = PrometheusMetrics()
-    metrics_collector.init()
-    app.state.query_service = QueryService(
-        settings, rag, gateway, cache=cache, tracing=tracing, metrics=metrics_collector
-    )
-    app.state.rate_limiter = RateLimiter(
-        rpm=settings.rate_limit_rpm,
-        tpm=settings.rate_limit_tpm,
-    )
+    components = await bootstrap.build_app_components(settings)
+    app.state.settings = components.settings
+    app.state.query_service = components.query_service
+    app.state.rate_limiter = components.rate_limiter
     yield
-    await rag.close()
+    await components.rag.close()
 
 
 app = FastAPI(

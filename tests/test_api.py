@@ -1,40 +1,20 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from genai_platform.adapters.cache.redis_cache import SemanticCache
-from genai_platform.adapters.llm.litellm_provider import LiteLLMProvider
-from genai_platform.adapters.metrics.prometheus_metrics import PrometheusMetrics
-from genai_platform.adapters.tracing.langfuse_tracing import MetricsCollector
-from genai_platform.adapters.vector_store.qdrant_store import QdrantVectorStore
-from genai_platform.api import app
+from genai_platform.adapters.http.api import app
+from genai_platform.bootstrap import build_app_components
 from genai_platform.config import Settings
-from genai_platform.gateway import LLMGateway
-from genai_platform.rag import RAGPipeline
-from genai_platform.rate_limiter import RateLimiter
-from genai_platform.services import QueryService
 
 
 @pytest.fixture(autouse=True)
 async def setup_app_state():
-    settings = Settings()
-    app.state.settings = settings
-    llm_provider = LiteLLMProvider()
-    gateway = LLMGateway(settings, llm_provider)
-    rag = RAGPipeline(settings, gateway, llm_provider, QdrantVectorStore(url=settings.qdrant_url))
-    await rag.initialize()
-    metrics = PrometheusMetrics()
-    metrics.init()
-    app.state.query_service = QueryService(
-        settings,
-        rag,
-        gateway,
-        cache=SemanticCache(redis_url=settings.redis_url, ttl=settings.cache_ttl),
-        tracing=MetricsCollector(settings),
-        metrics=metrics,
-    )
-    app.state.rate_limiter = RateLimiter(rpm=100000, tpm=10000000)
+    settings = Settings(rate_limit_rpm=100000, rate_limit_tpm=10000000)
+    components = await build_app_components(settings)
+    app.state.settings = components.settings
+    app.state.query_service = components.query_service
+    app.state.rate_limiter = components.rate_limiter
     yield
-    await rag.close()
+    await components.rag.close()
 
 
 @pytest.fixture
