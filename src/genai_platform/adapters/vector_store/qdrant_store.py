@@ -64,9 +64,9 @@ class QdrantVectorStore:
         if not self._ready:
             return []
 
-        results = await self._client.search(
+        response = await self._client.query_points(
             collection_name=collection,
-            query_vector=query_vector,
+            query=query_vector,
             limit=limit,
         )
         return [
@@ -78,7 +78,7 @@ class QdrantVectorStore:
                 score=r.score,
                 source="vector",
             )
-            for r in results
+            for r in response.points
         ]
 
     async def close(self) -> None:
