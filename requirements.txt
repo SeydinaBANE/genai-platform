@@ -75,7 +75,7 @@ llama-index-workflows==2.20.0
 lxml==6.1.1
 markdown-it-py==4.2.0
 MarkupSafe==3.0.3
-marshmallow==3.26.2
+marshmallow==4.3.0
 mdurl==0.1.2
 multidict==6.7.1
 mypy==2.1.0
