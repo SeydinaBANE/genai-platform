@@ -23,7 +23,7 @@ jobs:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Python
         uses: actions/setup-python@v5
@@ -53,7 +53,7 @@ jobs:
         python-version: ["3.11", "3.12"]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -79,7 +79,7 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Python
         uses: actions/setup-python@v5
@@ -102,7 +102,7 @@ jobs:
     needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build Docker image
         run: docker build -t genai-platform:ci-${{ github.sha }} .
